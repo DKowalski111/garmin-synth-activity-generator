@@ -51,7 +51,7 @@ public class RealisticSpeedProfileGenerator implements SpeedProfileGenerator {
         } else {
             envelope = 1.0;
         }
-        double noise = 1.0 + 0.03 * rng.nextGaussian();
+        double noise = 1.0 + 0.02 * rng.nextGaussian();
         return Math.max(0, targetAvg * envelope * noise);
     }
 

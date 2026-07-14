@@ -119,7 +119,7 @@ public class ActivityGenerator {
         if (isPaused || speedMps == 0.0) return 0;
         // Small natural variation around the configured cadence (±3%)
         int base = config.cadenceSpm();
-        int variation = (int) Math.round(base * 0.03 * rng.nextGaussian());
+        int variation = (int) Math.round(base * 0.05 * rng.nextGaussian());
         return Math.max(0, base + variation);
     }
 
