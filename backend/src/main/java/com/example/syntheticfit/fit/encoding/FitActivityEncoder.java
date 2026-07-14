@@ -11,7 +11,7 @@ import java.util.List;
 public class FitActivityEncoder {
 
     private static final long GARMIN_EPOCH_OFFSET = 631065600L;
-    private static final int SYNTHETIC_PRODUCT = 9999;
+    private static final int GARMIN_VIVOACTIVE6_PRODUCT = 4625;
     private static final long SYNTHETIC_SERIAL = 12345678L;
 
     public byte[] encode(GeneratedActivity activity) {
@@ -52,7 +52,8 @@ public class FitActivityEncoder {
         FileIdMesg fileId = new FileIdMesg();
         fileId.setType(File.ACTIVITY);
         fileId.setManufacturer(Manufacturer.GARMIN);
-        fileId.setProduct(SYNTHETIC_PRODUCT);
+        fileId.setProduct(GARMIN_VIVOACTIVE6_PRODUCT);
+        fileId.setGarminProduct(GARMIN_VIVOACTIVE6_PRODUCT);
         fileId.setSerialNumber(SYNTHETIC_SERIAL);
         fileId.setTimeCreated(toGarminDateTime(summary.startTime()));
         encoder.write(fileId);
