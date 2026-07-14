@@ -66,10 +66,34 @@ export function ConfigPanel({ config, onChange }: Props) {
         </label>
       ) : (
         <>
-          <label>Average Pace (min/km)
-            <input type="number" min={2} max={20} step={0.1}
-              value={config.averagePaceMinPerKm}
-              onChange={e => update('averagePaceMinPerKm', parseFloat(e.target.value))} />
+          <label>Average Pace
+            <div className="pace-input">
+              <div className="pace-field">
+                <input
+                  type="number" min={2} max={19} step={1}
+                  value={Math.floor(config.averagePaceMinPerKm)}
+                  onChange={e => {
+                    const mins = Math.max(2, Math.min(19, parseInt(e.target.value) || 2))
+                    const secs = Math.round((config.averagePaceMinPerKm % 1) * 60)
+                    update('averagePaceMinPerKm', mins + secs / 60)
+                  }}
+                />
+                <span>min</span>
+              </div>
+              <span className="pace-sep">:</span>
+              <div className="pace-field">
+                <input
+                  type="number" min={0} max={59} step={1}
+                  value={Math.round((config.averagePaceMinPerKm % 1) * 60)}
+                  onChange={e => {
+                    const secs = Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
+                    const mins = Math.floor(config.averagePaceMinPerKm)
+                    update('averagePaceMinPerKm', mins + secs / 60)
+                  }}
+                />
+                <span>sec /km</span>
+              </div>
+            </div>
           </label>
           <label>Steps per Minute (spm)
             <input type="number" min={100} max={220} step={1}

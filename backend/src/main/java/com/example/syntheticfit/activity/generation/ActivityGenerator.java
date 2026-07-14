@@ -49,7 +49,8 @@ public class ActivityGenerator {
                 timeline.movingDurationSeconds(),
                 config.recordingIntervalSeconds(),
                 config.seed(),
-                config.pauses()
+                config.pauses(),
+                config.sport()
         );
         SpeedProfile speedProfile = speedProfileGenerator.generate(speedReq);
         List<Double> speeds = speedProfile.speedsAtEachSample();

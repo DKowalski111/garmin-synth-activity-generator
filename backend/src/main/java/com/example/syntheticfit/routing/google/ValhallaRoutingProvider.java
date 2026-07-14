@@ -58,11 +58,19 @@ public class ValhallaRoutingProvider implements RoutingProvider {
                 throw new RuntimeException("Valhalla returned no route");
             }
 
-            // Decode the encoded polyline (precision 6) from the first leg
-            String encoded = parsed.trip().legs().get(0).shape();
-            double[][] coords = decodePolyline6(encoded);
-
-            return routeProcessor.buildRoute(coords, encoded);
+            // Concatenate all legs — Valhalla returns one leg per segment
+            // (start→wp1, wp1→wp2, …, wpN→end). Each leg's shape is independent.
+            List<double[]> allCoords = new ArrayList<>();
+            for (ValhallaLeg leg : parsed.trip().legs()) {
+                double[][] legCoords = decodePolyline6(leg.shape());
+                // Skip the first point of subsequent legs — it duplicates the last point of the previous leg
+                int startIdx = allCoords.isEmpty() ? 0 : 1;
+                for (int i = startIdx; i < legCoords.length; i++) {
+                    allCoords.add(legCoords[i]);
+                }
+            }
+            double[][] coords = allCoords.toArray(new double[0][2]);
+            return routeProcessor.buildRoute(coords, "");
 
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();

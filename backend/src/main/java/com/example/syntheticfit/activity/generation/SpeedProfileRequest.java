@@ -1,7 +1,9 @@
 package com.example.syntheticfit.activity.generation;
 
-import java.util.List;
 import com.example.syntheticfit.activity.domain.PauseDefinition;
+import com.example.syntheticfit.activity.domain.SportType;
+
+import java.util.List;
 
 public record SpeedProfileRequest(
         double routeDistanceMeters,
@@ -9,5 +11,6 @@ public record SpeedProfileRequest(
         double movingDurationSeconds,
         int recordingIntervalSeconds,
         long seed,
-        List<PauseDefinition> pauses
+        List<PauseDefinition> pauses,
+        SportType sport
 ) {}

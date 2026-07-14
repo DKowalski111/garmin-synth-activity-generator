@@ -1,6 +1,7 @@
 package com.example.syntheticfit.activity;
 
 import com.example.syntheticfit.activity.generation.*;
+import com.example.syntheticfit.activity.domain.SportType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,7 +15,7 @@ class SpeedProfileGeneratorTest {
     @Test
     void generatedProfileMatchesRouteDistance() {
         SpeedProfileRequest request = new SpeedProfileRequest(
-                10000, 10.0, 1000, 1, 42L, List.of());
+                10000, 10.0, 1000, 1, 42L, List.of(), SportType.CYCLING);
         SpeedProfile profile = generator.generate(request);
 
         double totalDist = profile.speedsAtEachSample().stream()
@@ -24,7 +25,7 @@ class SpeedProfileGeneratorTest {
 
     @Test
     void sameSeadProducesSameResult() {
-        SpeedProfileRequest req = new SpeedProfileRequest(5000, 5.0, 1000, 1, 999L, List.of());
+        SpeedProfileRequest req = new SpeedProfileRequest(5000, 5.0, 1000, 1, 999L, List.of(), SportType.CYCLING);
         SpeedProfile p1 = generator.generate(req);
         SpeedProfile p2 = generator.generate(req);
         assertThat(p1.speedsAtEachSample()).isEqualTo(p2.speedsAtEachSample());
@@ -32,8 +33,8 @@ class SpeedProfileGeneratorTest {
 
     @Test
     void differentSeedsProduceDifferentResults() {
-        SpeedProfileRequest r1 = new SpeedProfileRequest(5000, 5.0, 1000, 1, 1L, List.of());
-        SpeedProfileRequest r2 = new SpeedProfileRequest(5000, 5.0, 1000, 1, 2L, List.of());
+        SpeedProfileRequest r1 = new SpeedProfileRequest(5000, 5.0, 1000, 1, 1L, List.of(), SportType.CYCLING);
+        SpeedProfileRequest r2 = new SpeedProfileRequest(5000, 5.0, 1000, 1, 2L, List.of(), SportType.CYCLING);
         SpeedProfile p1 = generator.generate(r1);
         SpeedProfile p2 = generator.generate(r2);
         assertThat(p1.speedsAtEachSample()).isNotEqualTo(p2.speedsAtEachSample());
