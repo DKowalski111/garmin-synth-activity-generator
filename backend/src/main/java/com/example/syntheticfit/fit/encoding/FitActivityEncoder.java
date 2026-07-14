@@ -86,10 +86,10 @@ public class FitActivityEncoder {
             record.setEnhancedAltitude((float) sample.altitudeMeters().doubleValue());
         }
         if (sample.cadenceSpm() != null) {
-            // FIT cadence for running is strides/min (half of steps/min), but
-            // Garmin Connect displays it as steps/min — store raw spm value here
-            // and let the FIT field carry it directly.
-            record.setCadence(sample.cadenceSpm().shortValue());
+            // FIT cadence field unit is strides/min (1 stride = 2 steps).
+            // Garmin Connect multiplies by 2 when displaying steps/min,
+            // so store spm/2 here to get the correct displayed value.
+            record.setCadence((short) (sample.cadenceSpm() / 2));
         }
         encoder.write(record);
     }
