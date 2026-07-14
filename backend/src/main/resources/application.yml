@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  cors:
+    allowed-origins: "http://localhost:5173,http://localhost:3000"
+  google:
+    maps-api-key: ${GOOGLE_MAPS_API_KEY:}

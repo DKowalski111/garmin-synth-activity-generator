@@ -1,0 +1,10 @@
+spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  cors:
+    allowed-origins: "http://localhost:5173"
+  google:
+    maps-api-key: ""
