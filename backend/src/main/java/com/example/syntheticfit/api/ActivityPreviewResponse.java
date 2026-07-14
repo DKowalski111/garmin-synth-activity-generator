@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record ActivityPreviewResponse(
+        String sport,
         SummaryDto summary,
         List<SampleDto> samples
 ) {
@@ -29,6 +30,7 @@ public record ActivityPreviewResponse(
             double distanceMeters,
             double speedMetersPerSecond,
             int heartRate,
-            boolean isPaused
+            boolean isPaused,
+            Integer cadenceSpm
     ) {}
 }

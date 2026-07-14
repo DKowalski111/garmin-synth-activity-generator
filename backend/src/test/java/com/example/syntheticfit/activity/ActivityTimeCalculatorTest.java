@@ -20,8 +20,8 @@ class ActivityTimeCalculatorTest {
     @Test
     void endNow_setsEndToClockInstant() {
         ActivityConfiguration config = new ActivityConfiguration(
-                "Test", 36.0, 150, 1, 42L,
-                new TimeConfiguration(TimeMode.END_NOW, null), List.of());
+                "Test", SportType.CYCLING, 36.0, 150, 1, 42L,
+                new TimeConfiguration(TimeMode.END_NOW, null), List.of(), null);
         // 10000m at 10 m/s = 1000 seconds
         ActivityTimeline timeline = calculator.calculate(10000, config);
 
@@ -34,8 +34,8 @@ class ActivityTimeCalculatorTest {
     void startAtSelectedTime_calculatesEndForward() {
         Instant start = Instant.parse("2024-06-15T08:00:00Z");
         ActivityConfiguration config = new ActivityConfiguration(
-                "Test", 36.0, 150, 1, 42L,
-                new TimeConfiguration(TimeMode.START_AT_SELECTED_TIME, start), List.of());
+                "Test", SportType.CYCLING, 36.0, 150, 1, 42L,
+                new TimeConfiguration(TimeMode.START_AT_SELECTED_TIME, start), List.of(), null);
         ActivityTimeline timeline = calculator.calculate(10000, config);
 
         assertThat(timeline.activityStart()).isEqualTo(start);
@@ -46,8 +46,8 @@ class ActivityTimeCalculatorTest {
     void endAtSelectedTime_calculatesStartBackward() {
         Instant end = Instant.parse("2024-06-15T12:00:00Z");
         ActivityConfiguration config = new ActivityConfiguration(
-                "Test", 36.0, 150, 1, 42L,
-                new TimeConfiguration(TimeMode.END_AT_SELECTED_TIME, end), List.of());
+                "Test", SportType.CYCLING, 36.0, 150, 1, 42L,
+                new TimeConfiguration(TimeMode.END_AT_SELECTED_TIME, end), List.of(), null);
         ActivityTimeline timeline = calculator.calculate(10000, config);
 
         assertThat(timeline.activityEnd()).isEqualTo(end);
@@ -61,8 +61,8 @@ class ActivityTimeCalculatorTest {
                         java.time.Duration.ofSeconds(200),
                         java.time.Duration.ofSeconds(300)));
         ActivityConfiguration config = new ActivityConfiguration(
-                "Test", 36.0, 150, 1, 42L,
-                new TimeConfiguration(TimeMode.END_NOW, null), pauses);
+                "Test", SportType.CYCLING, 36.0, 150, 1, 42L,
+                new TimeConfiguration(TimeMode.END_NOW, null), pauses, null);
         ActivityTimeline timeline = calculator.calculate(10000, config);
 
         assertThat(timeline.movingDurationSeconds()).isCloseTo(1000, within(0.01));

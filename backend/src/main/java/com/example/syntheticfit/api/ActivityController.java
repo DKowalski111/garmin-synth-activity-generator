@@ -62,7 +62,8 @@ public class ActivityController {
                         request.activityName(), request.sport(), request.route(),
                         request.timeConfiguration(), request.averageSpeedKmh(),
                         request.averageHeartRate(), request.recordingIntervalSeconds(),
-                        request.seed(), request.pauses(), requestTime)
+                        request.seed(), request.pauses(), requestTime,
+                        request.averagePaceMinPerKm(), request.cadenceSpm())
                 : request;
 
         ActivityConfiguration config = mapper.toConfig(withTimestamp);
@@ -97,10 +98,10 @@ public class ActivityController {
                 .map(sample -> new ActivityPreviewResponse.SampleDto(
                         sample.timestamp(), sample.latitude(), sample.longitude(),
                         sample.distanceMeters(), sample.speedMetersPerSecond(),
-                        sample.heartRate(), sample.isPaused()))
+                        sample.heartRate(), sample.isPaused(), sample.cadenceSpm()))
                 .toList();
 
-        return new ActivityPreviewResponse(summaryDto, sampleDtos);
+        return new ActivityPreviewResponse(activity.sport().name(), summaryDto, sampleDtos);
     }
 
     private String sanitizeFilename(String name) {

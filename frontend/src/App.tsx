@@ -19,18 +19,12 @@ export default function App() {
   const { preview, setPreview, generatePreview, isLoadingPreview } = useActivityPreview(setError)
 
   const handleGeneratePreview = useCallback(async () => {
-    if (!route) {
-      setError('Please calculate a route first.')
-      return
-    }
+    if (!route) { setError('Please calculate a route first.'); return }
     await generatePreview(route, config)
   }, [route, config, generatePreview])
 
   const handleDownloadFit = useCallback(async () => {
-    if (!route) {
-      setError('Please calculate a route first.')
-      return
-    }
+    if (!route) { setError('Please calculate a route first.'); return }
     setError(null)
     try {
       const response = await fetch('/api/activities/fit', {
@@ -46,7 +40,7 @@ export default function App() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = (config.activityName || 'synthetic-cycling-activity').replace(/\s+/g, '_') + '.fit'
+      a.download = (config.activityName || 'synthetic-activity').replace(/\s+/g, '_') + '.fit'
       a.click()
       URL.revokeObjectURL(url)
     } catch (e: unknown) {
@@ -66,7 +60,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>Synthetic FIT Generator</h1>
-        <p>Generate realistic Garmin-compatible cycling activity files for testing</p>
+        <p>Generate realistic Garmin-compatible activity files for testing</p>
       </header>
 
       {error && (
@@ -94,8 +88,8 @@ export default function App() {
         </div>
         <div className="right-panel">
           <ConfigPanel config={config} onChange={setConfig} />
-          {preview && <SummaryPanel summary={preview.summary} />}
-          {preview && <PreviewCharts samples={preview.samples} />}
+          {preview && <SummaryPanel summary={preview.summary} sport={preview.sport} />}
+          {preview && <PreviewCharts samples={preview.samples} sport={preview.sport} />}
         </div>
       </div>
     </div>
@@ -105,22 +99,15 @@ export default function App() {
 function buildActivityRequest(route: RouteResult, config: ActivityConfig) {
   return {
     activityName: config.activityName,
-    sport: 'CYCLING',
-    route: {
-      distanceMeters: route.distanceMeters,
-      points: route.points,
-    },
-    timeConfiguration: {
-      mode: config.timeMode,
-      selectedTime: config.selectedTime || null,
-    },
-    averageSpeedKmh: config.averageSpeedKmh,
+    sport: config.sport,
+    route: { distanceMeters: route.distanceMeters, points: route.points },
+    timeConfiguration: { mode: config.timeMode, selectedTime: config.selectedTime || null },
+    averageSpeedKmh: config.sport === 'CYCLING' ? config.averageSpeedKmh : 1, // backend uses pace for running
+    averagePaceMinPerKm: config.sport === 'RUNNING' ? config.averagePaceMinPerKm : null,
     averageHeartRate: config.averageHeartRate,
     recordingIntervalSeconds: config.recordingIntervalSeconds,
     seed: config.seed,
-    pauses: config.pauses.map(p => ({
-      offsetSeconds: p.offsetSeconds,
-      durationSeconds: p.durationSeconds,
-    })),
+    pauses: config.pauses.map(p => ({ offsetSeconds: p.offsetSeconds, durationSeconds: p.durationSeconds })),
+    cadenceSpm: config.cadenceSpm,
   }
 }

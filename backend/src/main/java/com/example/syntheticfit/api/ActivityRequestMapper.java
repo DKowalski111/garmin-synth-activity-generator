@@ -2,7 +2,6 @@ package com.example.syntheticfit.api;
 
 import com.example.syntheticfit.activity.domain.*;
 import com.example.syntheticfit.routing.domain.Route;
-import com.example.syntheticfit.routing.domain.RoutePoint;
 import com.example.syntheticfit.routing.domain.RouteProcessor;
 import org.springframework.stereotype.Component;
 
@@ -32,16 +31,40 @@ public class ActivityRequestMapper {
     public ActivityConfiguration toConfig(ActivityApiRequest req) {
         TimeConfiguration timeCfg = mapTimeConfig(req.timeConfiguration(), req.fixedEndTime());
         List<PauseDefinition> pauses = mapPauses(req.pauses());
+        SportType sport = parseSport(req.sport());
+
+        double speedKmh = resolveSpeedKmh(req, sport);
+        String name = req.activityName() != null ? req.activityName()
+                : (sport == SportType.RUNNING ? "Synthetic Running Activity" : "Synthetic Cycling Activity");
 
         return new ActivityConfiguration(
-                req.activityName() != null ? req.activityName() : "Synthetic Cycling Activity",
-                req.averageSpeedKmh(),
+                name,
+                sport,
+                speedKmh,
                 req.averageHeartRate(),
                 req.recordingIntervalSeconds(),
                 req.seed(),
                 timeCfg,
-                pauses
+                pauses,
+                req.cadenceSpm()
         );
+    }
+
+    private SportType parseSport(String sport) {
+        if ("RUNNING".equalsIgnoreCase(sport)) return SportType.RUNNING;
+        return SportType.CYCLING;
+    }
+
+    /**
+     * For running, the frontend sends averagePaceMinPerKm (min/km).
+     * Convert to km/h: speed = 60 / pace.
+     * Fall back to averageSpeedKmh if pace is absent.
+     */
+    private double resolveSpeedKmh(ActivityApiRequest req, SportType sport) {
+        if (sport == SportType.RUNNING && req.averagePaceMinPerKm() != null && req.averagePaceMinPerKm() > 0) {
+            return 60.0 / req.averagePaceMinPerKm();
+        }
+        return req.averageSpeedKmh();
     }
 
     private TimeConfiguration mapTimeConfig(ActivityApiRequest.TimeConfigDto dto, java.time.Instant fixedEndTime) {
@@ -49,7 +72,6 @@ public class ActivityRequestMapper {
         return switch (mode) {
             case END_NOW -> {
                 if (fixedEndTime != null) {
-                    // For deterministic tests/preview
                     yield new TimeConfiguration(TimeMode.END_AT_SELECTED_TIME, fixedEndTime);
                 }
                 yield new TimeConfiguration(TimeMode.END_NOW, null);

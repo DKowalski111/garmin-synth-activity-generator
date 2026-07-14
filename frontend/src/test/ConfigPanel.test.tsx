@@ -1,10 +1,17 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ConfigPanel } from '../components/ConfigPanel'
-import { defaultConfig } from '../types/activity'
+import { defaultConfig, defaultRunningConfig } from '../types/activity'
 
 describe('ConfigPanel', () => {
-  it('renders all form fields', () => {
+  it('renders sport selector buttons', () => {
+    const onChange = vi.fn()
+    render(<ConfigPanel config={defaultConfig} onChange={onChange} />)
+    expect(screen.getByText(/cycling/i)).toBeInTheDocument()
+    expect(screen.getByText(/running/i)).toBeInTheDocument()
+  })
+
+  it('renders cycling fields by default', () => {
     const onChange = vi.fn()
     render(<ConfigPanel config={defaultConfig} onChange={onChange} />)
     expect(screen.getByText(/activity name/i)).toBeInTheDocument()
@@ -12,6 +19,13 @@ describe('ConfigPanel', () => {
     expect(screen.getByText(/average heart rate/i)).toBeInTheDocument()
     expect(screen.getByText(/recording interval/i)).toBeInTheDocument()
     expect(screen.getByText(/timing mode/i)).toBeInTheDocument()
+  })
+
+  it('shows pace and cadence fields for running', () => {
+    const onChange = vi.fn()
+    render(<ConfigPanel config={defaultRunningConfig} onChange={onChange} />)
+    expect(screen.getByText(/average pace/i)).toBeInTheDocument()
+    expect(screen.getByText(/steps per minute/i)).toBeInTheDocument()
   })
 
   it('calls onChange when speed is updated', () => {

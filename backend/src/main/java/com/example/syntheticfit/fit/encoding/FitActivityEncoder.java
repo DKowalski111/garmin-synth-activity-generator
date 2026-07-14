@@ -10,10 +10,7 @@ import java.util.List;
 @Component
 public class FitActivityEncoder {
 
-    // Garmin epoch: 1989-12-31T00:00:00Z in Unix seconds
     private static final long GARMIN_EPOCH_OFFSET = 631065600L;
-
-    // Synthetic identity — not a real Garmin device
     private static final int SYNTHETIC_PRODUCT = 9999;
     private static final long SYNTHETIC_SERIAL = 12345678L;
 
@@ -22,6 +19,7 @@ public class FitActivityEncoder {
 
         ActivitySummary summary = activity.summary();
         List<ActivitySample> samples = activity.samples();
+        SportType sport = activity.sport();
 
         writeFileId(encoder, summary);
         writeTimerStart(encoder, summary.startTime());
@@ -43,9 +41,8 @@ public class FitActivityEncoder {
         }
 
         writeTimerEvent(encoder, summary.endTime(), EventType.STOP_ALL);
-
-        writeLap(encoder, summary);
-        writeSession(encoder, summary);
+        writeLap(encoder, summary, sport);
+        writeSession(encoder, summary, sport);
         writeActivity(encoder, summary);
 
         return encoder.close();
@@ -88,10 +85,16 @@ public class FitActivityEncoder {
         if (sample.altitudeMeters() != null) {
             record.setEnhancedAltitude((float) sample.altitudeMeters().doubleValue());
         }
+        if (sample.cadenceSpm() != null) {
+            // FIT cadence for running is strides/min (half of steps/min), but
+            // Garmin Connect displays it as steps/min — store raw spm value here
+            // and let the FIT field carry it directly.
+            record.setCadence(sample.cadenceSpm().shortValue());
+        }
         encoder.write(record);
     }
 
-    private void writeLap(BufferEncoder encoder, ActivitySummary summary) {
+    private void writeLap(BufferEncoder encoder, ActivitySummary summary, SportType sport) {
         LapMesg lap = new LapMesg();
         lap.setTimestamp(toGarminDateTime(summary.endTime()));
         lap.setStartTime(toGarminDateTime(summary.startTime()));
@@ -105,11 +108,11 @@ public class FitActivityEncoder {
         lap.setTotalCalories(summary.totalCalories());
         lap.setEvent(Event.LAP);
         lap.setEventType(EventType.STOP);
-        lap.setSport(Sport.CYCLING);
+        lap.setSport(toFitSport(sport));
         encoder.write(lap);
     }
 
-    private void writeSession(BufferEncoder encoder, ActivitySummary summary) {
+    private void writeSession(BufferEncoder encoder, ActivitySummary summary, SportType sport) {
         SessionMesg session = new SessionMesg();
         session.setTimestamp(toGarminDateTime(summary.endTime()));
         session.setStartTime(toGarminDateTime(summary.startTime()));
@@ -121,8 +124,8 @@ public class FitActivityEncoder {
         session.setAvgHeartRate((short) summary.averageHeartRate());
         session.setMaxHeartRate((short) summary.maxHeartRate());
         session.setTotalCalories(summary.totalCalories());
-        session.setSport(Sport.CYCLING);
-        session.setSubSport(SubSport.ROAD);
+        session.setSport(toFitSport(sport));
+        session.setSubSport(toFitSubSport(sport));
         session.setEvent(Event.SESSION);
         session.setEventType(EventType.STOP);
         session.setFirstLapIndex(0);
@@ -140,6 +143,14 @@ public class FitActivityEncoder {
         activityMesg.setEvent(Event.ACTIVITY);
         activityMesg.setEventType(EventType.STOP);
         encoder.write(activityMesg);
+    }
+
+    private Sport toFitSport(SportType sport) {
+        return sport == SportType.RUNNING ? Sport.RUNNING : Sport.CYCLING;
+    }
+
+    private SubSport toFitSubSport(SportType sport) {
+        return sport == SportType.RUNNING ? SubSport.STREET : SubSport.ROAD;
     }
 
     private DateTime toGarminDateTime(Instant instant) {

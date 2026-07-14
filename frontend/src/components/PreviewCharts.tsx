@@ -2,13 +2,16 @@ import React, { useMemo } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { ActivitySample } from '../types/activity'
+import { ActivitySample, SportType } from '../types/activity'
 
 interface Props {
   samples: ActivitySample[]
+  sport: SportType
 }
 
-export function PreviewCharts({ samples }: Props) {
+export function PreviewCharts({ samples, sport }: Props) {
+  const isRunning = sport === 'RUNNING'
+
   // Subsample for performance — show at most 500 points
   const data = useMemo(() => {
     if (samples.length <= 500) return samples
@@ -17,29 +20,55 @@ export function PreviewCharts({ samples }: Props) {
   }, [samples])
 
   const elapsed = useMemo(() =>
-    data.map((s, i) => ({
-      t: i,
-      speed: parseFloat((s.speedMetersPerSecond * 3.6).toFixed(2)),
-      hr: s.heartRate,
-      dist: parseFloat((s.distanceMeters / 1000).toFixed(3)),
-    })),
+    data.map((s, i) => {
+      const speedMps = s.speedMetersPerSecond
+      const paceMinKm = speedMps > 0 ? parseFloat((1000 / (speedMps * 60)).toFixed(2)) : null
+      return {
+        t: i,
+        speed: parseFloat((speedMps * 3.6).toFixed(2)),
+        pace: paceMinKm,
+        hr: s.heartRate,
+        dist: parseFloat((s.distanceMeters / 1000).toFixed(3)),
+        cadence: s.cadenceSpm ?? null,
+      }
+    }),
     [data]
   )
+
+  const hasCadence = data.some(s => s.cadenceSpm != null)
 
   return (
     <div className="preview-charts panel">
       <h2>Activity Preview</h2>
 
-      <h3>Speed (km/h)</h3>
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={elapsed} margin={{ left: 0, right: 10, top: 5, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-          <XAxis dataKey="t" hide />
-          <YAxis domain={[0, 'auto']} width={40} unit=" km/h" tick={{ fontSize: 11 }} />
-          <Tooltip formatter={(v) => [`${v} km/h`, 'Speed']} />
-          <Line type="monotone" dataKey="speed" stroke="#e67e22" dot={false} strokeWidth={1.5} />
-        </LineChart>
-      </ResponsiveContainer>
+      {isRunning ? (
+        <>
+          <h3>Pace (min/km)</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={elapsed} margin={{ left: 0, right: 10, top: 5, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+              <XAxis dataKey="t" hide />
+              {/* Inverted domain: lower pace = faster, so we want smaller values at top */}
+              <YAxis domain={['auto', 'auto']} reversed width={50} unit=" min" tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => [`${v} min/km`, 'Pace']} />
+              <Line type="monotone" dataKey="pace" stroke="#e67e22" dot={false} strokeWidth={1.5} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+        </>
+      ) : (
+        <>
+          <h3>Speed (km/h)</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={elapsed} margin={{ left: 0, right: 10, top: 5, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+              <XAxis dataKey="t" hide />
+              <YAxis domain={[0, 'auto']} width={40} unit=" km/h" tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => [`${v} km/h`, 'Speed']} />
+              <Line type="monotone" dataKey="speed" stroke="#e67e22" dot={false} strokeWidth={1.5} />
+            </LineChart>
+          </ResponsiveContainer>
+        </>
+      )}
 
       <h3>Heart Rate (BPM)</h3>
       <ResponsiveContainer width="100%" height={180}>
@@ -62,6 +91,21 @@ export function PreviewCharts({ samples }: Props) {
           <Line type="monotone" dataKey="dist" stroke="#3498db" dot={false} strokeWidth={1.5} />
         </LineChart>
       </ResponsiveContainer>
+
+      {hasCadence && (
+        <>
+          <h3>Cadence (spm)</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={elapsed} margin={{ left: 0, right: 10, top: 5, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+              <XAxis dataKey="t" hide />
+              <YAxis domain={['auto', 'auto']} width={45} unit=" spm" tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => [`${v} spm`, 'Cadence']} />
+              <Line type="monotone" dataKey="cadence" stroke="#9b59b6" dot={false} strokeWidth={1.5} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+        </>
+      )}
     </div>
   )
 }

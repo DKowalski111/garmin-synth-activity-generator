@@ -13,23 +13,16 @@ export function useActivityPreview(setError: (e: string | null) => void) {
     try {
       const response = await axios.post<ActivityPreview>('/api/activities/preview', {
         activityName: config.activityName,
-        sport: 'CYCLING',
-        route: {
-          distanceMeters: route.distanceMeters,
-          points: route.points,
-        },
-        timeConfiguration: {
-          mode: config.timeMode,
-          selectedTime: config.selectedTime || null,
-        },
-        averageSpeedKmh: config.averageSpeedKmh,
+        sport: config.sport,
+        route: { distanceMeters: route.distanceMeters, points: route.points },
+        timeConfiguration: { mode: config.timeMode, selectedTime: config.selectedTime || null },
+        averageSpeedKmh: config.sport === 'CYCLING' ? config.averageSpeedKmh : 1,
+        averagePaceMinPerKm: config.sport === 'RUNNING' ? config.averagePaceMinPerKm : null,
         averageHeartRate: config.averageHeartRate,
         recordingIntervalSeconds: config.recordingIntervalSeconds,
         seed: config.seed,
-        pauses: config.pauses.map(p => ({
-          offsetSeconds: p.offsetSeconds,
-          durationSeconds: p.durationSeconds,
-        })),
+        pauses: config.pauses.map(p => ({ offsetSeconds: p.offsetSeconds, durationSeconds: p.durationSeconds })),
+        cadenceSpm: config.cadenceSpm,
       })
       setPreview(response.data)
     } catch (e: unknown) {

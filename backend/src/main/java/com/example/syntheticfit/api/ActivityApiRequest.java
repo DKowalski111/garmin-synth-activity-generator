@@ -17,7 +17,10 @@ public record ActivityApiRequest(
         @Min(1) @Max(60) int recordingIntervalSeconds,
         long seed,
         List<PauseDto> pauses,
-        Instant fixedEndTime
+        Instant fixedEndTime,
+        // Running-specific fields (null for cycling)
+        Double averagePaceMinPerKm,
+        Integer cadenceSpm
 ) {
     public record RouteDto(double distanceMeters, List<PointDto> points) {}
     public record PointDto(double latitude, double longitude) {}

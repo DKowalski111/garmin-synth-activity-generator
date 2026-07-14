@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { ActivityConfig, TimeMode, PauseConfig } from '../types/activity'
+import { ActivityConfig, SportType, TimeMode, PauseConfig, defaultCyclingConfig, defaultRunningConfig } from '../types/activity'
 
 interface Props {
   config: ActivityConfig
@@ -13,6 +13,12 @@ export function ConfigPanel({ config, onChange }: Props) {
     [config, onChange]
   )
 
+  const handleSportChange = (sport: SportType) => {
+    // Reset to sport-appropriate defaults, preserving timing and seed
+    const base = sport === 'RUNNING' ? defaultRunningConfig : defaultCyclingConfig
+    onChange({ ...base, sport, timeMode: config.timeMode, selectedTime: config.selectedTime, seed: config.seed })
+  }
+
   const addPause = () =>
     update('pauses', [...config.pauses, { offsetSeconds: 300, durationSeconds: 120 }])
 
@@ -25,20 +31,53 @@ export function ConfigPanel({ config, onChange }: Props) {
     update('pauses', pauses)
   }
 
+  const isCycling = config.sport === 'CYCLING'
+
   return (
     <div className="config-panel panel">
       <h2>Activity Configuration</h2>
+
+      {/* Sport selector */}
+      <div className="sport-selector">
+        <button
+          className={`sport-btn ${isCycling ? 'active' : ''}`}
+          onClick={() => handleSportChange('CYCLING')}
+        >
+          🚴 Cycling
+        </button>
+        <button
+          className={`sport-btn ${!isCycling ? 'active' : ''}`}
+          onClick={() => handleSportChange('RUNNING')}
+        >
+          🏃 Running
+        </button>
+      </div>
 
       <label>Activity Name
         <input type="text" value={config.activityName}
           onChange={e => update('activityName', e.target.value)} />
       </label>
 
-      <label>Average Speed (km/h)
-        <input type="number" min={1} max={100} step={0.5}
-          value={config.averageSpeedKmh}
-          onChange={e => update('averageSpeedKmh', parseFloat(e.target.value))} />
-      </label>
+      {isCycling ? (
+        <label>Average Speed (km/h)
+          <input type="number" min={1} max={100} step={0.5}
+            value={config.averageSpeedKmh}
+            onChange={e => update('averageSpeedKmh', parseFloat(e.target.value))} />
+        </label>
+      ) : (
+        <>
+          <label>Average Pace (min/km)
+            <input type="number" min={2} max={20} step={0.1}
+              value={config.averagePaceMinPerKm}
+              onChange={e => update('averagePaceMinPerKm', parseFloat(e.target.value))} />
+          </label>
+          <label>Steps per Minute (spm)
+            <input type="number" min={100} max={220} step={1}
+              value={config.cadenceSpm ?? 170}
+              onChange={e => update('cadenceSpm', parseInt(e.target.value))} />
+          </label>
+        </>
+      )}
 
       <label>Average Heart Rate (BPM)
         <input type="number" min={40} max={220}
@@ -77,7 +116,6 @@ export function ConfigPanel({ config, onChange }: Props) {
             onChange={e => {
               const v = e.target.value
               if (!v) { update('selectedTime', null); return }
-              // datetime-local value is local time — convert to UTC ISO string
               update('selectedTime', new Date(v).toISOString())
             }} />
         </label>

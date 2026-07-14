@@ -4,5 +4,6 @@ import java.util.List;
 
 public record GeneratedActivity(
         ActivitySummary summary,
-        List<ActivitySample> samples
+        List<ActivitySample> samples,
+        SportType sport
 ) {}

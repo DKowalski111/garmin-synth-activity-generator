@@ -10,5 +10,6 @@ public record ActivitySample(
         double speedMetersPerSecond,
         int heartRate,
         Double altitudeMeters,
-        boolean isPaused
+        boolean isPaused,
+        Integer cadenceSpm
 ) {}

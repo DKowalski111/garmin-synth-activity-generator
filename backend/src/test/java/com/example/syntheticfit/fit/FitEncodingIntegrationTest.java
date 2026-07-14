@@ -37,8 +37,8 @@ class FitEncodingIntegrationTest {
     void generatedFitFile_passesValidation() {
         Route route = buildTestRoute();
         ActivityConfiguration config = new ActivityConfiguration(
-                "Integration Test", 25.0, 145, 5, 42L,
-                new TimeConfiguration(TimeMode.END_NOW, null), List.of());
+                "Integration Test", SportType.CYCLING, 25.0, 145, 5, 42L,
+                new TimeConfiguration(TimeMode.END_NOW, null), List.of(), null);
 
         GeneratedActivity activity = generator.generate(route, config);
         byte[] fit = encoder.encode(activity);
@@ -54,8 +54,8 @@ class FitEncodingIntegrationTest {
     void fitFile_containsRequiredMessages() {
         Route route = buildTestRoute();
         ActivityConfiguration config = new ActivityConfiguration(
-                "Test", 25.0, 145, 10, 1L,
-                new TimeConfiguration(TimeMode.END_NOW, null), List.of());
+                "Test", SportType.CYCLING, 25.0, 145, 10, 1L,
+                new TimeConfiguration(TimeMode.END_NOW, null), List.of(), null);
 
         GeneratedActivity activity = generator.generate(route, config);
         byte[] fit = encoder.encode(activity);
@@ -69,10 +69,10 @@ class FitEncodingIntegrationTest {
     void fitFile_hasBinaryContent() {
         Route route = buildTestRoute();
         ActivityConfiguration config = new ActivityConfiguration(
-                "Test", 20.0, 140, 5, 77L,
+                "Test", SportType.CYCLING, 20.0, 140, 5, 77L,
                 new TimeConfiguration(TimeMode.END_AT_SELECTED_TIME,
                         Instant.parse("2024-06-15T09:00:00Z")),
-                List.of());
+                List.of(), null);
 
         GeneratedActivity activity = generator.generate(route, config);
         byte[] fit = encoder.encode(activity);

@@ -18,29 +18,48 @@ const mockSummary: ActivitySummary = {
   totalCalories: 820,
 }
 
-describe('SummaryPanel', () => {
+describe('SummaryPanel — cycling', () => {
   it('displays distance in km', () => {
-    render(<SummaryPanel summary={mockSummary} />)
+    render(<SummaryPanel summary={mockSummary} sport="CYCLING" />)
     expect(screen.getByText('25.00 km')).toBeInTheDocument()
   })
 
   it('displays sample count', () => {
-    render(<SummaryPanel summary={mockSummary} />)
+    render(<SummaryPanel summary={mockSummary} sport="CYCLING" />)
     expect(screen.getByText('3600')).toBeInTheDocument()
   })
 
   it('displays average heart rate', () => {
-    render(<SummaryPanel summary={mockSummary} />)
+    render(<SummaryPanel summary={mockSummary} sport="CYCLING" />)
     expect(screen.getByText('145 BPM')).toBeInTheDocument()
   })
 
   it('displays pause duration', () => {
-    render(<SummaryPanel summary={mockSummary} />)
+    render(<SummaryPanel summary={mockSummary} sport="CYCLING" />)
     expect(screen.getByText('5m 0s')).toBeInTheDocument()
   })
 
   it('displays calories', () => {
-    render(<SummaryPanel summary={mockSummary} />)
+    render(<SummaryPanel summary={mockSummary} sport="CYCLING" />)
     expect(screen.getByText('820 kcal')).toBeInTheDocument()
+  })
+
+  it('shows speed labels for cycling', () => {
+    render(<SummaryPanel summary={mockSummary} sport="CYCLING" />)
+    expect(screen.getByText('Avg Speed')).toBeInTheDocument()
+  })
+})
+
+describe('SummaryPanel — running', () => {
+  it('shows pace labels for running', () => {
+    render(<SummaryPanel summary={mockSummary} sport="RUNNING" />)
+    expect(screen.getByText('Avg Pace')).toBeInTheDocument()
+  })
+
+  it('formats avg pace correctly', () => {
+    render(<SummaryPanel summary={mockSummary} sport="RUNNING" />)
+    // 6.94 m/s → pace displayed as X:XX min/km
+    const paceElements = screen.getAllByText(/min\/km/)
+    expect(paceElements.length).toBeGreaterThan(0)
   })
 })

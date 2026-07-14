@@ -4,12 +4,14 @@ import java.util.List;
 
 public record ActivityConfiguration(
         String activityName,
+        SportType sport,
         double averageSpeedKmh,
         int averageHeartRate,
         int recordingIntervalSeconds,
         long seed,
         TimeConfiguration timeConfiguration,
-        List<PauseDefinition> pauses
+        List<PauseDefinition> pauses,
+        Integer cadenceSpm
 ) {
     public ActivityConfiguration {
         if (averageSpeedKmh < 1 || averageSpeedKmh > 100) {
@@ -22,5 +24,6 @@ public record ActivityConfiguration(
             throw new IllegalArgumentException("Recording interval must be between 1 and 60 seconds");
         }
         if (pauses == null) pauses = List.of();
+        if (sport == null) sport = SportType.CYCLING;
     }
 }
