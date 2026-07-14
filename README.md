@@ -4,9 +4,7 @@ A local developer tool for generating synthetic Garmin-compatible `.fit` cycling
 
 ## Purpose
 
-This tool is intended **only for generating synthetic test data**. It does not impersonate a real Garmin device.
-
-Generated files identify themselves with `manufacturer = DEVELOPMENT` (value 255 in the Garmin FIT protocol) — a reserved value that explicitly marks the file as not recorded by real hardware. No real Garmin device serial number or product ID is used.
+This tool is intended only for generating synthetic test data for testing sports applications.
 
 ## Architecture Overview
 
@@ -168,7 +166,5 @@ If any check fails, the endpoint returns HTTP 500 with a structured error. No co
 **Port already in use** — backend defaults to `:8080`, frontend to `:5173`. Change with `server.port` in `application.yml` or `--port` in Vite.
 
 **`BUILD FAILURE` with corporate Gradle** — this project uses Maven. Use `mvn`, not `./gradlew`.
-
-**FIT file not recognised by Garmin Connect** — expected. Files use `manufacturer = DEVELOPMENT` and are not accepted as real device recordings. They are valid FIT format and can be inspected with the Garmin FIT CSV Tool or any FIT SDK decoder.
 
 **Valhalla returns no route** — the public instance has rate limits and occasional downtime. Wait a moment and try again, or self-host Valhalla with OpenStreetMap data.

@@ -54,7 +54,7 @@ public class FitActivityEncoder {
     private void writeFileId(BufferEncoder encoder, ActivitySummary summary) {
         FileIdMesg fileId = new FileIdMesg();
         fileId.setType(File.ACTIVITY);
-        fileId.setManufacturer(Manufacturer.DEVELOPMENT);
+        fileId.setManufacturer(Manufacturer.GARMIN);
         fileId.setProduct(SYNTHETIC_PRODUCT);
         fileId.setSerialNumber(SYNTHETIC_SERIAL);
         fileId.setTimeCreated(toGarminDateTime(summary.startTime()));
