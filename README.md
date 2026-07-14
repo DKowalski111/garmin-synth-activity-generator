@@ -1,27 +1,29 @@
 # Synthetic FIT Generator
 
-A local developer tool for generating synthetic Garmin-compatible `.fit` cycling activity files from user-drawn Google Maps routes.
+A local developer tool for generating synthetic Garmin-compatible `.fit` cycling activity files from drawn routes.
 
 ## Purpose
 
-This tool is intended **only for generating synthetic test data**. It does not impersonate a real Garmin device. The generated files use `manufacturer = DEVELOPMENT` and a clearly synthetic product identifier.
+This tool is intended **only for generating synthetic test data**. It does not impersonate a real Garmin device.
+
+Generated files identify themselves with `manufacturer = DEVELOPMENT` (value 255 in the Garmin FIT protocol) — a reserved value that explicitly marks the file as not recorded by real hardware. No real Garmin device serial number or product ID is used.
 
 ## Architecture Overview
 
 ```
 Frontend (React/Vite :5173)
-    │  POST /api/routes          → route geometry + polyline
-    │  POST /api/activities/preview → synthetic samples (JSON)
-    │  POST /api/activities/fit  → binary .fit file
+    │  POST /api/routes              → route geometry from Valhalla
+    │  POST /api/activities/preview  → synthetic samples (JSON)
+    │  POST /api/activities/fit      → binary .fit file
     ▼
 Backend (Spring Boot :8080)
-    ├── routing         ← Google Directions API / RoutingProvider interface
-    ├── activity        ← time calculation, speed + HR generation, pauses
+    ├── routing         ← Valhalla routing API / RoutingProvider interface
+    ├── activity        ← time calculation, speed + HR + calorie generation, pauses
     ├── fit/encoding    ← Garmin FIT SDK BufferEncoder
     └── fit/validation  ← re-decode + integrity check
 ```
 
-The activity generation pipeline is fully independent of HTTP and Google Maps:
+The activity generation pipeline is fully independent of routing:
 
 ```
 Route geometry
@@ -30,39 +32,25 @@ Route geometry
   → Timestamped distance samples
   → Interpolated GPS coordinates (Haversine)
   → Synthetic heart-rate profile (cardiac lag model)
+  → MET-based calorie estimate
   → FIT serialization (Garmin SDK)
   → FIT validation (re-decode)
 ```
 
 ## Requirements
 
-| Component | Version  |
-|-----------|----------|
-| Java      | 17+      |
-| Maven     | 3.9+     |
-| Node.js   | 18+      |
-| npm       | 9+       |
+| Component | Version |
+|-----------|---------|
+| Java      | 17+     |
+| Maven     | 3.9+    |
+| Node.js   | 18+     |
+| npm       | 9+      |
 
-## Google API Setup
+## No API Keys Required
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project and enable **Directions API** and **Maps JavaScript API**
-3. Create an API key
-4. Restrict the key to your local origin (`http://localhost:5173`) for the browser key
+The map uses **OpenStreetMap** tiles (free, no account needed) via Leaflet.
 
-## Environment Variables
-
-**Frontend** (`frontend/.env`):
-```
-VITE_GOOGLE_MAPS_API_KEY=your_key_here
-```
-
-**Backend** (`backend/.env` — loaded by your shell or IDE):
-```
-GOOGLE_MAPS_API_KEY=your_key_here
-```
-
-The backend uses `GOOGLE_MAPS_API_KEY` only for the `/api/routes` endpoint. All other endpoints work without it.
+Routing uses the **Valhalla** public instance at `valhalla1.openstreetmap.de` (free, no account needed). It uses the bicycle costing model with a strong preference for dedicated cycling infrastructure — cycle lanes, paths, and shared-use tracks over roads.
 
 ## Local Startup
 
@@ -71,8 +59,6 @@ The backend uses `GOOGLE_MAPS_API_KEY` only for the `/api/routes` endpoint. All 
 ```bash
 cd backend
 mvn spring-boot:run
-# OR with API key:
-GOOGLE_MAPS_API_KEY=your_key mvn spring-boot:run
 ```
 
 Backend listens on `http://localhost:8080`.
@@ -81,8 +67,6 @@ Backend listens on `http://localhost:8080`.
 
 ```bash
 cd frontend
-cp .env.example .env
-# Edit .env and add your VITE_GOOGLE_MAPS_API_KEY
 npm install
 npm run dev
 ```
@@ -92,19 +76,19 @@ Frontend dev server at `http://localhost:5173`. API calls are proxied to `:8080`
 ## Test Commands
 
 ```bash
-# Backend tests (20 tests)
+# Backend (20 tests)
 cd backend && mvn test
 
-# Frontend tests (8 tests)
+# Frontend (9 tests)
 cd frontend && npm test
 
-# All tests from root
+# Both from root
 make test
 ```
 
 ## Example API Request
 
-### Preview activity (no Google key needed — pass your own route points)
+### Preview activity
 
 ```bash
 curl -s -X POST http://localhost:8080/api/activities/preview \
@@ -140,13 +124,11 @@ curl -s -X POST http://localhost:8080/api/activities/fit \
 
 ## End Now Timestamp Behavior
 
-When `timeConfiguration.mode = "END_NOW"`, the server captures `clock.instant()` at the **very beginning** of the `/api/activities/fit` request handler — before any generation work begins. The activity end time is set to this instant. Start time is calculated backwards:
+When `timeConfiguration.mode = "END_NOW"`, the server captures `clock.instant()` at the **very beginning** of the `/api/activities/fit` request handler — before any generation work begins. Start time is calculated backwards:
 
 ```
 start = end - (route_distance / average_speed) - sum(pause_durations)
 ```
-
-This means the activity end time equals the moment the user clicked "Download", not when the file finished generating.
 
 ## Moving Time vs Elapsed Time
 
@@ -163,33 +145,30 @@ The configured `averageSpeedKmh` is the **moving** average — it excludes pause
 
 ## FIT Validation
 
-After encoding, the backend re-decodes every generated file using the Garmin SDK and checks:
+After encoding, the backend re-decodes every generated file and checks:
 
 1. File is non-empty and ≥14 bytes
 2. `Decode.checkFileIntegrity()` returns true (valid CRC)
 3. Re-decode succeeds without exceptions
-4. Required messages are present: Record, Session, Activity, Lap
+4. Required messages present: Record, Session, Activity, Lap
 5. Record timestamps are monotonically increasing
 6. Accumulated distance never decreases
 
-If any check fails, the endpoint returns HTTP 500 with an `ErrorResponse` containing the specific issues. No corrupt file is returned.
+If any check fails, the endpoint returns HTTP 500 with a structured error. No corrupt file is returned.
 
 ## Known Limitations
 
-- Only **cycling** sport is implemented. Running/walking support requires adding sport type selection to the UI and backend.
-- Altitude data is not generated (no elevation source). The altitude fields in FIT records are omitted.
-- Cadence and power fields are present in the domain model but not generated or written.
-- The Google Maps integration uses the Directions API (bicycling mode). For regions with poor cycling route data, the route may fall back to driving roads.
-- The frontend map requires a valid Google Maps API key. Without one, the map shows a placeholder message but the backend API still works.
+- Only **cycling** is implemented. Running/walking can be added via the `RoutingProvider` and sport-type selection.
+- Altitude data is not generated (no elevation source).
+- Cadence and power are not generated.
+- Calorie estimate assumes a body weight of 75 kg using MET values from the Compendium of Physical Activities.
 
 ## Troubleshooting
 
-**`GOOGLE_MAPS_API_KEY is not configured`** — set the env variable before starting the backend, or use the `/api/activities/*` endpoints directly with your own route points.
-
-**`This page can't load Google Maps correctly`** — the `VITE_GOOGLE_MAPS_API_KEY` is missing, invalid, or the key doesn't have Maps JavaScript API enabled.
-
 **Port already in use** — backend defaults to `:8080`, frontend to `:5173`. Change with `server.port` in `application.yml` or `--port` in Vite.
 
-**`BUILD FAILURE` with corporate Gradle** — this project uses Maven to avoid corporate Gradle init scripts. Use `mvn` not `./gradlew`.
+**`BUILD FAILURE` with corporate Gradle** — this project uses Maven. Use `mvn`, not `./gradlew`.
 
-**FIT file not recognized by Garmin Connect** — this is expected for synthetic files using `manufacturer = DEVELOPMENT`. The files are valid FIT format and can be opened with tools like FIT CSV Tool or decoded with the SDK.
+**FIT file not recognised by Garmin Connect** — expected. Files use `manufacturer = DEVELOPMENT` and are not accepted as real device recordings. They are valid FIT format and can be inspected with the Garmin FIT CSV Tool or any FIT SDK decoder.
+
+**Valhalla returns no route** — the public instance has rate limits and occasional downtime. Wait a moment and try again, or self-host Valhalla with OpenStreetMap data.
