@@ -9,7 +9,8 @@ import java.util.List;
 public record RouteApiRequest(
         @NotNull CoordinateDto start,
         @NotNull CoordinateDto end,
-        List<CoordinateDto> waypoints
+        List<CoordinateDto> waypoints,
+        String sport
 ) {
     public record CoordinateDto(double latitude, double longitude) {}
 }

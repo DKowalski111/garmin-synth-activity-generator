@@ -1,5 +1,6 @@
 package com.example.syntheticfit.api;
 
+import com.example.syntheticfit.activity.domain.SportType;
 import com.example.syntheticfit.routing.domain.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +20,15 @@ public class RouteController {
 
     @PostMapping
     public ResponseEntity<RouteApiResponse> calculateRoute(@Valid @RequestBody RouteApiRequest request) {
+        SportType sport = "RUNNING".equalsIgnoreCase(request.sport()) ? SportType.RUNNING : SportType.CYCLING;
         RouteRequest routeRequest = new RouteRequest(
                 new Coordinate(request.start().latitude(), request.start().longitude()),
                 new Coordinate(request.end().latitude(), request.end().longitude()),
                 request.waypoints() == null ? List.of() :
                         request.waypoints().stream()
                                 .map(w -> new Coordinate(w.latitude(), w.longitude()))
-                                .toList()
+                                .toList(),
+                sport
         );
 
         Route route = routingProvider.calculateRoute(routeRequest);

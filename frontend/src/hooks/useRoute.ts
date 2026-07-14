@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import axios from 'axios'
+import { SportType } from '../types/activity'
 import { RouteResult } from '../types/route'
 
 interface MapSelection {
@@ -12,7 +13,7 @@ export function useRoute(setError: (e: string | null) => void) {
   const [route, setRoute] = useState<RouteResult | null>(null)
   const [isLoadingRoute, setIsLoadingRoute] = useState(false)
 
-  const calculateRoute = useCallback(async (selection: MapSelection) => {
+  const calculateRoute = useCallback(async (selection: MapSelection, sport: SportType) => {
     if (!selection.start || !selection.end) {
       setError('Please select both a start and end point on the map.')
       return
@@ -24,6 +25,7 @@ export function useRoute(setError: (e: string | null) => void) {
         start: selection.start,
         end: selection.end,
         waypoints: selection.waypoints,
+        sport,
       })
       setRoute(response.data)
     } catch (e: unknown) {

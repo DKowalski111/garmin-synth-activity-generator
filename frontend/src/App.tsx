@@ -73,7 +73,7 @@ export default function App() {
       <div className="app-body">
         <div className="left-panel">
           <MapPanel
-            onRouteCalculated={calculateRoute}
+            onRouteCalculated={(selection) => calculateRoute(selection, config.sport)}
             route={route}
             isLoading={isLoadingRoute}
           />

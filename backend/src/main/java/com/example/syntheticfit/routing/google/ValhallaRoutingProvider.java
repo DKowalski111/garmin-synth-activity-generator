@@ -88,19 +88,36 @@ public class ValhallaRoutingProvider implements RoutingProvider {
         }
         locations.add(Map.of("lon", request.end().longitude(), "lat", request.end().latitude()));
 
-        // use_roads=0.1 strongly prefers cycling paths/lanes over shared roads
-        Map<String, Object> bicycleCostingOptions = Map.of(
-                "use_roads", 0.1,
-                "use_hills", 0.3,
-                "bicycle_type", "hybrid"
-        );
+        boolean isRunning = request.sport() == com.example.syntheticfit.activity.domain.SportType.RUNNING;
 
-        Map<String, Object> requestMap = Map.of(
-                "locations", locations,
-                "costing", "bicycle",
-                "costing_options", Map.of("bicycle", bicycleCostingOptions),
-                "units", "kilometers"
-        );
+        Map<String, Object> requestMap;
+        if (isRunning) {
+            // pedestrian costing: routes along sidewalks, footpaths, and pedestrian zones
+            Map<String, Object> pedestrianOptions = Map.of(
+                    "walking_speed", 2.5,
+                    "use_roads", 0.1,
+                    "use_tracks", 0.9
+            );
+            requestMap = Map.of(
+                    "locations", locations,
+                    "costing", "pedestrian",
+                    "costing_options", Map.of("pedestrian", pedestrianOptions),
+                    "units", "kilometers"
+            );
+        } else {
+            // bicycle costing: strongly prefers cycling paths/lanes over shared roads
+            Map<String, Object> bicycleOptions = Map.of(
+                    "use_roads", 0.1,
+                    "use_hills", 0.3,
+                    "bicycle_type", "hybrid"
+            );
+            requestMap = Map.of(
+                    "locations", locations,
+                    "costing", "bicycle",
+                    "costing_options", Map.of("bicycle", bicycleOptions),
+                    "units", "kilometers"
+            );
+        }
 
         try {
             return objectMapper.writeValueAsString(requestMap);
