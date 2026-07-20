@@ -3,7 +3,6 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { RouteResult, LatLng } from '../types/route'
 
-// Fix Leaflet default marker icon paths broken by Vite bundling
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png'
 import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png'
@@ -26,24 +25,12 @@ interface Props {
 
 type ClickMode = 'start' | 'end' | 'waypoint'
 
-const startIcon = L.divIcon({
-  className: '',
-  html: '<div style="background:#2ecc71;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:white">S</div>',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-})
-const endIcon = L.divIcon({
-  className: '',
-  html: '<div style="background:#e74c3c;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:white">E</div>',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-})
-const waypointIcon = (n: number) => L.divIcon({
-  className: '',
-  html: `<div style="background:#3498db;width:18px;height:18px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:white">${n}</div>`,
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-})
+const markerHtml = (label: string, bg: string, size = 20) =>
+  `<div title="Click to remove" style="background:${bg};width:${size}px;height:${size}px;border-radius:50%;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;font-weight:bold;color:white;cursor:pointer">${label}</div>`
+
+const startIcon = L.divIcon({ className: '', html: markerHtml('S', '#2ecc71'), iconSize: [20, 20], iconAnchor: [10, 10] })
+const endIcon   = L.divIcon({ className: '', html: markerHtml('E', '#e74c3c'), iconSize: [20, 20], iconAnchor: [10, 10] })
+const waypointIcon = (n: number) => L.divIcon({ className: '', html: markerHtml(String(n), '#3498db', 18), iconSize: [18, 18], iconAnchor: [9, 9] })
 
 export function MapPanel({ onRouteCalculated, route, isLoading }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -57,8 +44,33 @@ export function MapPanel({ onRouteCalculated, route, isLoading }: Props) {
   const [waypoints, setWaypoints] = useState<LatLng[]>([])
   const [clickMode, setClickMode] = useState<ClickMode>('start')
 
-  // keep ref in sync so map click handler never captures stale state
+  // Expose removal handlers via refs so marker click listeners always see current state
+  const removeStartRef = useRef<() => void>(() => {})
+  const removeEndRef = useRef<() => void>(() => {})
+  const removeWaypointRef = useRef<(i: number) => void>(() => {})
+
   useEffect(() => { clickModeRef.current = clickMode }, [clickMode])
+
+  useEffect(() => {
+    removeStartRef.current = () => {
+      setStart(null)
+      setClickMode('start')
+    }
+  }, [])
+
+  useEffect(() => {
+    removeEndRef.current = () => {
+      setEnd(null)
+      // If start exists, go back to needing an end; otherwise back to start
+      setClickMode(start ? 'end' : 'start')
+    }
+  }, [start])
+
+  useEffect(() => {
+    removeWaypointRef.current = (i: number) => {
+      setWaypoints(prev => prev.filter((_, idx) => idx !== i))
+    }
+  }, [])
 
   // Initialise map once
   useEffect(() => {
@@ -86,15 +98,30 @@ export function MapPanel({ onRouteCalculated, route, isLoading }: Props) {
     mapInstanceRef.current = map
   }, [])
 
-  // Redraw markers whenever pins change
+  // Redraw markers with click-to-remove handlers
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
-    if (start) markersRef.current.push(L.marker([start.latitude, start.longitude], { icon: startIcon }).addTo(map))
-    waypoints.forEach((wp, i) => markersRef.current.push(L.marker([wp.latitude, wp.longitude], { icon: waypointIcon(i + 1) }).addTo(map)))
-    if (end) markersRef.current.push(L.marker([end.latitude, end.longitude], { icon: endIcon }).addTo(map))
+
+    if (start) {
+      const m = L.marker([start.latitude, start.longitude], { icon: startIcon }).addTo(map)
+      m.on('click', (e) => { L.DomEvent.stopPropagation(e); removeStartRef.current() })
+      markersRef.current.push(m)
+    }
+
+    waypoints.forEach((wp, i) => {
+      const m = L.marker([wp.latitude, wp.longitude], { icon: waypointIcon(i + 1) }).addTo(map)
+      m.on('click', (e) => { L.DomEvent.stopPropagation(e); removeWaypointRef.current(i) })
+      markersRef.current.push(m)
+    })
+
+    if (end) {
+      const m = L.marker([end.latitude, end.longitude], { icon: endIcon }).addTo(map)
+      m.on('click', (e) => { L.DomEvent.stopPropagation(e); removeEndRef.current() })
+      markersRef.current.push(m)
+    }
   }, [start, end, waypoints])
 
   // Draw route polyline
@@ -125,6 +152,7 @@ export function MapPanel({ onRouteCalculated, route, isLoading }: Props) {
       <div className="map-toolbar">
         <span className="mode-indicator">
           Click to set: <strong>{clickMode === 'start' ? 'Start' : clickMode === 'end' ? 'End' : 'Waypoint'}</strong>
+          <span style={{ fontWeight: 'normal', marginLeft: 8, opacity: 0.6 }}>· click a marker to remove it</span>
         </span>
         <div className="map-status">
           {start && <span className="badge green">Start set</span>}
